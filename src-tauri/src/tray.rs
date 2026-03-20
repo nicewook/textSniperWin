@@ -2,7 +2,7 @@ use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem},
     tray::{TrayIcon, TrayIconBuilder},
     image::Image,
-    AppHandle, Emitter,
+    AppHandle,
 };
 use std::sync::Mutex;
 
@@ -35,17 +35,35 @@ impl TrayManager {
         let quit_item = MenuItem::with_id(app, "quit", "종료", true, None::<&str>)?;
         let menu = Menu::with_items(app, &[&capture_item, &auto_start_item, &quit_item])?;
 
-        let tray = TrayIconBuilder::new()
+        let auto_start_clone = auto_start_item.clone();
+
+        let tray = TrayIconBuilder::with_id("main")
             .icon(Image::from_bytes(include_bytes!("../icons/icon.ico"))?)
             .tooltip("TextSniper")
             .menu(&menu)
             .show_menu_on_left_click(false)
-            .on_menu_event(|app, event| match event.id.as_ref() {
+            .on_menu_event(move |app: &AppHandle, event: tauri::menu::MenuEvent| match event.id.as_ref() {
                 "capture" => {
-                    app.emit("trigger-capture", ()).ok();
+                    let app_handle = app.clone();
+                    if let Some(tray) = app.tray_by_id("main") {
+                        std::thread::spawn(move || {
+                            crate::run_capture_pipeline(app_handle, tray);
+                        });
+                    }
                 }
                 "auto_start" => {
-                    app.emit("toggle-auto-start", ()).ok();
+                    let new_state = auto_start_clone.is_checked().unwrap_or(false);
+                    match crate::config::set_auto_start(new_state) {
+                        Ok(()) => {
+                            let mut cfg = crate::config::AppConfig::load();
+                            cfg.auto_start = new_state;
+                            let _ = cfg.save();
+                        }
+                        Err(e) => {
+                            let _ = auto_start_clone.set_checked(!new_state);
+                            eprintln!("[tray] auto_start error: {}", e);
+                        }
+                    }
                 }
                 "quit" => {
                     app.exit(0);
