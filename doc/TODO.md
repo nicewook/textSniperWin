@@ -10,9 +10,9 @@
 - [x] cargo warnings 11개 정리 → 0개 (unused BOOL, imports, dead_code)
 - [x] `TrayManager::new()`, `state` 필드 미사용 코드 제거 → unit struct
 
-## P2 — 아이콘 & UI
-- [ ] placeholder 아이콘 4개 실제 디자인으로 교체 (icon, loading, success, error)
-- [ ] 오버레이 안내 텍스트 ("드래그하여 선택 / ESC 취소")
+## P2 — 아이콘 & UI ✅
+- [x] placeholder 아이콘 4개 → macOS 스타일 미니멀 단색 아이콘 (16x16+32x32 멀티사이즈)
+- [x] 오버레이 커서 근처 툴팁 ("드래그하여 선택 / ESC 취소") + DPI 대응
 
 ## P3 — 릴리즈 준비
 - [ ] `tauri.conf.json` 릴리즈 설정 (버전, 설명, 퍼블리셔)
