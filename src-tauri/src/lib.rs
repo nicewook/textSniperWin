@@ -87,7 +87,7 @@ fn setup_global_shortcut(
 }
 
 /// 핵심 파이프라인: 오버레이 → 캡처 → OCR → 클립보드
-fn run_capture_pipeline(app: tauri::AppHandle, tray: tauri::tray::TrayIcon) {
+pub fn run_capture_pipeline(app: tauri::AppHandle, tray: tauri::tray::TrayIcon) {
     // 1. 모니터 정보
     eprintln!("[pipeline] 1. get_current_monitor...");
     let monitor = match overlay::get_current_monitor() {
