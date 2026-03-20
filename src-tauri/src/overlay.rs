@@ -112,11 +112,12 @@ unsafe extern "system" fn overlay_wndproc(
                 let _ = unsafe { ReleaseCapture() };
 
                 let (ox, oy) = MONITOR_OFFSET.get();
-                let dpi = DPI_SCALE.get();
+                // 오버레이 창이 Per-Monitor DPI Aware 컨텍스트에서 동작하므로
+                // lparam 좌표는 이미 물리 픽셀 기준. DPI 스케일 적용 불필요.
                 let result = evaluate_selection(
                     sx + ox, sy + oy,
                     x + ox, y + oy,
-                    dpi,
+                    1.0,
                 );
                 OVERLAY_RESULT.set(Some(result));
                 DRAG_START.set(None);

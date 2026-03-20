@@ -125,22 +125,34 @@ fn recognize_with_language(bitmap: &SoftwareBitmap, lang_tag: &str) -> Result<St
 pub fn recognize_text(bitmap: &SoftwareBitmap) -> Result<String, String> {
     // 영어 먼저 시도
     if let Some(en_tag) = find_matching_tag("en") {
-        if let Ok(text) = recognize_with_language(bitmap, &en_tag) {
-            let trimmed = text.trim().to_string();
-            if !trimmed.is_empty() {
-                return Ok(trimmed);
+        match recognize_with_language(bitmap, &en_tag) {
+            Ok(text) => {
+                let trimmed = text.trim().to_string();
+                if !trimmed.is_empty() {
+                    return Ok(trimmed);
+                }
+                eprintln!("[ocr] en result empty, trying ko...");
             }
+            Err(e) => eprintln!("[ocr] en failed: {}", e),
         }
+    } else {
+        eprintln!("[ocr] en language not available");
     }
 
     // 한국어 폴백
     if let Some(ko_tag) = find_matching_tag("ko") {
-        if let Ok(text) = recognize_with_language(bitmap, &ko_tag) {
-            let trimmed = text.trim().to_string();
-            if !trimmed.is_empty() {
-                return Ok(trimmed);
+        match recognize_with_language(bitmap, &ko_tag) {
+            Ok(text) => {
+                let trimmed = text.trim().to_string();
+                if !trimmed.is_empty() {
+                    return Ok(trimmed);
+                }
+                eprintln!("[ocr] ko result also empty");
             }
+            Err(e) => eprintln!("[ocr] ko failed: {}", e),
         }
+    } else {
+        eprintln!("[ocr] ko language not available");
     }
 
     Err("No text recognized".to_string())
