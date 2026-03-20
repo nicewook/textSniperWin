@@ -8,6 +8,27 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::w;
 use std::cell::Cell;
 
+/// 툴팁 위치 계산 (커서 위치, 툴팁 크기, 화면 크기 기반)
+/// 반환: (x, y) 좌상단 좌표
+pub fn calculate_tooltip_position(
+    cursor_x: i32, cursor_y: i32,
+    tip_width: i32, tip_height: i32,
+    screen_width: i32, screen_height: i32,
+) -> (i32, i32) {
+    let offset = 20;
+    let mut x = cursor_x + offset;
+    let mut y = cursor_y + offset;
+
+    if x + tip_width > screen_width {
+        x = cursor_x - tip_width - offset / 2;
+    }
+    if y + tip_height > screen_height {
+        y = cursor_y - tip_height - offset / 2;
+    }
+
+    (x.max(0), y.max(0))
+}
+
 /// 오버레이 결과: 사용자가 선택한 영역 또는 취소
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OverlayResult {
@@ -79,6 +100,7 @@ thread_local! {
     static OVERLAY_RESULT: Cell<Option<OverlayResult>> = const { Cell::new(None) };
     static DPI_SCALE: Cell<f64> = const { Cell::new(1.0) };
     static MONITOR_OFFSET: Cell<(i32, i32)> = const { Cell::new((0, 0)) };
+    static MOUSE_POS: Cell<(i32, i32)> = const { Cell::new((0, 0)) };
 }
 
 unsafe extern "system" fn overlay_wndproc(
@@ -97,12 +119,13 @@ unsafe extern "system" fn overlay_wndproc(
             LRESULT(0)
         }
         WM_MOUSEMOVE => {
+            let x = (lparam.0 & 0xFFFF) as i16 as i32;
+            let y = ((lparam.0 >> 16) & 0xFFFF) as i16 as i32;
+            MOUSE_POS.set((x, y));
             if DRAG_START.get().is_some() {
-                let x = (lparam.0 & 0xFFFF) as i16 as i32;
-                let y = ((lparam.0 >> 16) & 0xFFFF) as i16 as i32;
                 DRAG_CURRENT.set(Some((x, y)));
-                let _ = unsafe { InvalidateRect(Some(hwnd), None, true) };
             }
+            let _ = unsafe { InvalidateRect(Some(hwnd), None, true) };
             LRESULT(0)
         }
         WM_LBUTTONUP => {
@@ -177,6 +200,85 @@ unsafe extern "system" fn overlay_wndproc(
                 let _ = unsafe { DeleteObject(border_brush.into()) };
             }
 
+            // 드래그 중이 아닐 때만 툴팁 표시
+            if DRAG_START.get().is_none() {
+                let (mx, my) = MOUSE_POS.get();
+                let font_height = (16.0 * DPI_SCALE.get()) as i32;
+                let hfont = unsafe {
+                    CreateFontW(
+                        font_height,
+                        0, 0, 0,
+                        FW_NORMAL.0 as i32,
+                        0, 0, 0,
+                        DEFAULT_CHARSET,
+                        OUT_DEFAULT_PRECIS,
+                        CLIP_DEFAULT_PRECIS,
+                        CLEARTYPE_QUALITY,
+                        (DEFAULT_PITCH.0 | FF_SWISS.0) as u32,
+                        w!("Segoe UI"),
+                    )
+                };
+                let old_font = unsafe { SelectObject(hdc, hfont.into()) };
+
+                let mut text_buf: Vec<u16> = "드래그하여 선택 / ESC 취소".encode_utf16().collect();
+                let pad_x = (12.0 * DPI_SCALE.get()) as i32;
+                let pad_y = (6.0 * DPI_SCALE.get()) as i32;
+
+                // 텍스트 크기 측정
+                let mut measure_rect = RECT { left: 0, top: 0, right: 0, bottom: 0 };
+                unsafe {
+                    DrawTextW(
+                        hdc,
+                        &mut text_buf,
+                        &mut measure_rect,
+                        DT_CALCRECT | DT_SINGLELINE,
+                    );
+                }
+
+                let text_w = measure_rect.right - measure_rect.left;
+                let text_h = measure_rect.bottom - measure_rect.top;
+                let tip_w = text_w + pad_x * 2;
+                let tip_h = text_h + pad_y * 2;
+
+                // 화면 크기로 위치 보정
+                let screen_w = client_rect.right - client_rect.left;
+                let screen_h = client_rect.bottom - client_rect.top;
+                let (tx, ty) = calculate_tooltip_position(mx, my, tip_w, tip_h, screen_w, screen_h);
+
+                // 다크 배경 그리기
+                let bg_rect = RECT {
+                    left: tx,
+                    top: ty,
+                    right: tx + tip_w,
+                    bottom: ty + tip_h,
+                };
+                let bg_brush = unsafe { CreateSolidBrush(COLORREF(0x00202020)) };
+                unsafe { FillRect(hdc, &bg_rect, bg_brush) };
+                let _ = unsafe { DeleteObject(bg_brush.into()) };
+
+                // 텍스트 그리기
+                unsafe { SetTextColor(hdc, COLORREF(0x00FFFFFF)) };
+                unsafe { SetBkMode(hdc, TRANSPARENT) };
+                let mut draw_rect = RECT {
+                    left: tx + pad_x,
+                    top: ty + pad_y,
+                    right: tx + tip_w - pad_x,
+                    bottom: ty + tip_h - pad_y,
+                };
+                unsafe {
+                    DrawTextW(
+                        hdc,
+                        &mut text_buf,
+                        &mut draw_rect,
+                        DT_SINGLELINE,
+                    );
+                }
+
+                // 폰트 복원 및 삭제
+                unsafe { SelectObject(hdc, old_font) };
+                let _ = unsafe { DeleteObject(hfont.into()) };
+            }
+
             let _ = unsafe { EndPaint(hwnd, &ps) };
             LRESULT(0)
         }
@@ -195,6 +297,7 @@ pub fn show_overlay(monitor: &MonitorInfo) -> OverlayResult {
     OVERLAY_RESULT.set(None);
     DPI_SCALE.set(monitor.dpi_scale);
     MONITOR_OFFSET.set((monitor.x, monitor.y));
+    MOUSE_POS.set((0, 0));
 
     unsafe {
         let hinstance = GetModuleHandleW(None).unwrap_or_default();
@@ -299,5 +402,36 @@ mod tests {
         let result = evaluate_selection(100, 100, 105, 105, 1.5);
         // 물리: 7.5x7.5 -> 7x7 -> too small
         assert_eq!(result, OverlayResult::TooSmall);
+    }
+
+    #[test]
+    fn test_tooltip_position_normal() {
+        // 커서가 화면 중앙 — 오른쪽 아래에 표시
+        let (x, y) = calculate_tooltip_position(500, 400, 200, 30, 1920, 1080);
+        assert_eq!((x, y), (520, 420));
+    }
+
+    #[test]
+    fn test_tooltip_position_right_edge() {
+        // 커서가 오른쪽 끝 — 왼쪽으로 보정
+        let (x, y) = calculate_tooltip_position(1800, 400, 200, 30, 1920, 1080);
+        assert!(x < 1800); // 왼쪽으로 이동
+        assert!(x + 200 <= 1920); // 화면 안에 있음
+    }
+
+    #[test]
+    fn test_tooltip_position_bottom_edge() {
+        // 커서가 하단 끝 — 위로 보정
+        let (x, y) = calculate_tooltip_position(500, 1060, 200, 30, 1920, 1080);
+        assert!(y < 1060); // 위로 이동
+        assert!(y + 30 <= 1080); // 화면 안에 있음
+    }
+
+    #[test]
+    fn test_tooltip_position_corner() {
+        // 커서가 우하단 모서리 — 양쪽 보정
+        let (x, y) = calculate_tooltip_position(1800, 1060, 200, 30, 1920, 1080);
+        assert!(x + 200 <= 1920);
+        assert!(y + 30 <= 1080);
     }
 }
