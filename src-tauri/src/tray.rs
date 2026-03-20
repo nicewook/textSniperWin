@@ -4,7 +4,6 @@ use tauri::{
     image::Image,
     AppHandle,
 };
-use std::sync::Mutex;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TrayState {
@@ -14,17 +13,9 @@ pub enum TrayState {
     Error,
 }
 
-pub struct TrayManager {
-    state: Mutex<TrayState>,
-}
+pub struct TrayManager;
 
 impl TrayManager {
-    pub fn new() -> Self {
-        Self {
-            state: Mutex::new(TrayState::Idle),
-        }
-    }
-
     /// Tauri setup 단계에서 호출. 트레이 아이콘과 메뉴 생성.
     pub fn setup_tray(app: &AppHandle) -> Result<TrayIcon, Box<dyn std::error::Error>> {
         let capture_item =

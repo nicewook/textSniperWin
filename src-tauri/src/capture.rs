@@ -1,5 +1,4 @@
 use windows::Win32::Graphics::Gdi::*;
-use windows::Win32::Foundation::HWND;
 
 /// 물리 픽셀 기준 사각형 영역
 #[derive(Debug, Clone, Copy, PartialEq)]
