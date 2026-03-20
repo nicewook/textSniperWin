@@ -1,6 +1,7 @@
 mod capture;
 mod clipboard;
 mod config;
+mod debug_log;
 mod ocr;
 mod overlay;
 mod single_instance;
@@ -89,31 +90,31 @@ fn setup_global_shortcut(
 /// 핵심 파이프라인: 오버레이 → 캡처 → OCR → 클립보드
 pub fn run_capture_pipeline(app: tauri::AppHandle, tray: tauri::tray::TrayIcon) {
     // 1. 모니터 정보
-    eprintln!("[pipeline] 1. get_current_monitor...");
+    debug_log::debug_log!("[pipeline] 1. get_current_monitor...");
     let monitor = match overlay::get_current_monitor() {
         Ok(m) => {
-            eprintln!("[pipeline] monitor: {}x{} at ({},{}) dpi={}", m.width, m.height, m.x, m.y, m.dpi_scale);
+            debug_log::debug_log!("[pipeline] monitor: {}x{} at ({},{}) dpi={}", m.width, m.height, m.x, m.y, m.dpi_scale);
             m
         }
         Err(e) => {
-            eprintln!("[pipeline] ERROR get_current_monitor: {}", e);
+            debug_log::debug_log!("[pipeline] ERROR get_current_monitor: {}", e);
             return;
         }
     };
 
     // 2. 오버레이 표시 + 영역 선택
-    eprintln!("[pipeline] 2. show_overlay...");
+    debug_log::debug_log!("[pipeline] 2. show_overlay...");
     let selection = overlay::show_overlay(&monitor);
-    eprintln!("[pipeline] overlay result: {:?}", selection);
+    debug_log::debug_log!("[pipeline] overlay result: {:?}", selection);
 
     let rect = match selection {
         OverlayResult::Selected(r) => r,
         OverlayResult::Cancelled => {
-            eprintln!("[pipeline] cancelled by user");
+            debug_log::debug_log!("[pipeline] cancelled by user");
             return;
         }
         OverlayResult::TooSmall => {
-            eprintln!("[pipeline] selection too small");
+            debug_log::debug_log!("[pipeline] selection too small");
             return;
         }
     };
@@ -125,21 +126,21 @@ pub fn run_capture_pipeline(app: tauri::AppHandle, tray: tauri::tray::TrayIcon) 
     std::thread::sleep(std::time::Duration::from_millis(150));
 
     // 4. 화면 캡처
-    eprintln!("[pipeline] 3. capture_screen_region({:?})...", rect);
+    debug_log::debug_log!("[pipeline] 3. capture_screen_region({:?})...", rect);
     let pixels = match capture::capture_screen_region(&rect) {
         Ok(p) => {
-            eprintln!("[pipeline] captured {} bytes", p.len());
+            debug_log::debug_log!("[pipeline] captured {} bytes", p.len());
             p
         }
         Err(e) => {
-            eprintln!("[pipeline] ERROR capture: {}", e);
+            debug_log::debug_log!("[pipeline] ERROR capture: {}", e);
             TrayManager::flash_state(tray, TrayState::Error, app);
             return;
         }
     };
 
     // 5. OCR (스레드 + 채널, 5초 타임아웃)
-    eprintln!("[pipeline] 4. OCR ({}x{})...", rect.width, rect.height);
+    debug_log::debug_log!("[pipeline] 4. OCR ({}x{})...", rect.width, rect.height);
     let pixels_clone = pixels;
     let width = rect.width;
     let height = rect.height;
@@ -153,11 +154,11 @@ pub fn run_capture_pipeline(app: tauri::AppHandle, tray: tauri::tray::TrayIcon) 
             );
         }
         let result: Result<String, String> = (|| {
-            eprintln!("[ocr-thread] create_bitmap_from_rgba...");
+            debug_log::debug_log!("[ocr-thread] create_bitmap_from_rgba...");
             let bmp = ocr::create_bitmap_from_rgba(&pixels_clone, width, height)?;
-            eprintln!("[ocr-thread] recognize_text...");
+            debug_log::debug_log!("[ocr-thread] recognize_text...");
             let text = ocr::recognize_text(&bmp)?;
-            eprintln!("[ocr-thread] recognized: {:?}", text);
+            debug_log::debug_log!("[ocr-thread] recognized: {:?}", text);
             Ok(text)
         })();
         let _ = tx.send(result);
@@ -165,30 +166,30 @@ pub fn run_capture_pipeline(app: tauri::AppHandle, tray: tauri::tray::TrayIcon) 
 
     let text = match rx.recv_timeout(std::time::Duration::from_secs(5)) {
         Ok(Ok(t)) => {
-            eprintln!("[pipeline] OCR result: {:?}", t);
+            debug_log::debug_log!("[pipeline] OCR result: {:?}", t);
             t
         }
         Ok(Err(e)) => {
-            eprintln!("[pipeline] ERROR OCR: {}", e);
+            debug_log::debug_log!("[pipeline] ERROR OCR: {}", e);
             TrayManager::flash_state(tray, TrayState::Error, app);
             return;
         }
         Err(_) => {
-            eprintln!("[pipeline] ERROR OCR timeout (5s exceeded)");
+            debug_log::debug_log!("[pipeline] ERROR OCR timeout (5s exceeded)");
             TrayManager::flash_state(tray, TrayState::Error, app);
             return;
         }
     };
 
     // 6. 클립보드 복사
-    eprintln!("[pipeline] 5. copy_to_clipboard...");
+    debug_log::debug_log!("[pipeline] 5. copy_to_clipboard...");
     match clipboard::copy_to_clipboard(&text) {
         Ok(_) => {
-            eprintln!("[pipeline] SUCCESS - text copied to clipboard");
+            debug_log::debug_log!("[pipeline] SUCCESS - text copied to clipboard");
             TrayManager::flash_state(tray, TrayState::Success, app);
         }
         Err(e) => {
-            eprintln!("[pipeline] ERROR clipboard: {}", e);
+            debug_log::debug_log!("[pipeline] ERROR clipboard: {}", e);
             TrayManager::flash_state(tray, TrayState::Error, app);
         }
     }

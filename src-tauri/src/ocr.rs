@@ -1,3 +1,4 @@
+use crate::debug_log::debug_log;
 use windows::Globalization::Language;
 use windows::Graphics::Imaging::{BitmapPixelFormat, SoftwareBitmap};
 use windows::Media::Ocr::OcrEngine;
@@ -131,12 +132,12 @@ pub fn recognize_text(bitmap: &SoftwareBitmap) -> Result<String, String> {
                 if !trimmed.is_empty() {
                     return Ok(trimmed);
                 }
-                eprintln!("[ocr] en result empty, trying ko...");
+                debug_log!("[ocr] en result empty, trying ko...");
             }
-            Err(e) => eprintln!("[ocr] en failed: {}", e),
+            Err(e) => debug_log!("[ocr] en failed: {}", e),
         }
     } else {
-        eprintln!("[ocr] en language not available");
+        debug_log!("[ocr] en language not available");
     }
 
     // 한국어 폴백
@@ -147,12 +148,12 @@ pub fn recognize_text(bitmap: &SoftwareBitmap) -> Result<String, String> {
                 if !trimmed.is_empty() {
                     return Ok(trimmed);
                 }
-                eprintln!("[ocr] ko result also empty");
+                debug_log!("[ocr] ko result also empty");
             }
-            Err(e) => eprintln!("[ocr] ko failed: {}", e),
+            Err(e) => debug_log!("[ocr] ko failed: {}", e),
         }
     } else {
-        eprintln!("[ocr] ko language not available");
+        debug_log!("[ocr] ko language not available");
     }
 
     Err("No text recognized".to_string())
