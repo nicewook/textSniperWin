@@ -101,7 +101,7 @@ unsafe extern "system" fn overlay_wndproc(
                 let x = (lparam.0 & 0xFFFF) as i16 as i32;
                 let y = ((lparam.0 >> 16) & 0xFFFF) as i16 as i32;
                 DRAG_CURRENT.set(Some((x, y)));
-                unsafe { InvalidateRect(Some(hwnd), None, true) };
+                let _ = unsafe { InvalidateRect(Some(hwnd), None, true) };
             }
             LRESULT(0)
         }
@@ -145,7 +145,7 @@ unsafe extern "system" fn overlay_wndproc(
 
             let dark_brush = unsafe { CreateSolidBrush(COLORREF(0x00000000)) };
             unsafe { FillRect(hdc, &client_rect, dark_brush) };
-            unsafe { DeleteObject(dark_brush.into()) };
+            let _ = unsafe { DeleteObject(dark_brush.into()) };
 
             // If dragging, clear the selection area (draw white rect to show "selected" area)
             if let (Some((sx, sy)), Some((cx, cy))) = (DRAG_START.get(), DRAG_CURRENT.get()) {
@@ -158,7 +158,7 @@ unsafe extern "system" fn overlay_wndproc(
                 // Draw selection area with a lighter brush to indicate selection
                 let sel_brush = unsafe { CreateSolidBrush(COLORREF(0x00404040)) };
                 unsafe { FillRect(hdc, &sel_rect, sel_brush) };
-                unsafe { DeleteObject(sel_brush.into()) };
+                let _ = unsafe { DeleteObject(sel_brush.into()) };
 
                 // Draw border around selection
                 let border_brush = unsafe { CreateSolidBrush(COLORREF(0x0000FF00)) };
@@ -174,10 +174,10 @@ unsafe extern "system" fn overlay_wndproc(
                 // Right border
                 let right = RECT { left: sel_rect.right - 2, top: sel_rect.top, right: sel_rect.right, bottom: sel_rect.bottom };
                 unsafe { FillRect(hdc, &right, border_brush) };
-                unsafe { DeleteObject(border_brush.into()) };
+                let _ = unsafe { DeleteObject(border_brush.into()) };
             }
 
-            unsafe { EndPaint(hwnd, &ps) };
+            let _ = unsafe { EndPaint(hwnd, &ps) };
             LRESULT(0)
         }
         WM_ERASEBKGND => {
@@ -243,13 +243,13 @@ pub fn show_overlay(monitor: &MonitorInfo) -> OverlayResult {
         // Set semi-transparent (alpha ~40% = 100/255)
         let _ = SetLayeredWindowAttributes(hwnd, COLORREF(0), 100, LWA_ALPHA);
 
-        ShowWindow(hwnd, SW_SHOW);
-        SetForegroundWindow(hwnd);
+        let _ = ShowWindow(hwnd, SW_SHOW);
+        let _ = SetForegroundWindow(hwnd);
 
         // Message loop
         let mut msg = MSG::default();
         while GetMessageW(&mut msg, None, 0, 0).as_bool() {
-            TranslateMessage(&msg);
+            let _ = TranslateMessage(&msg);
             DispatchMessageW(&msg);
         }
 
