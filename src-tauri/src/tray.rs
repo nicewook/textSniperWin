@@ -49,6 +49,8 @@ impl TrayManager {
                         std::thread::spawn(move || {
                             crate::run_capture_pipeline(app_handle, tray);
                         });
+                    } else {
+                        eprintln!("[tray] could not find tray 'main'");
                     }
                 }
                 "auto_start" => {
@@ -57,7 +59,9 @@ impl TrayManager {
                         Ok(()) => {
                             let mut cfg = crate::config::AppConfig::load();
                             cfg.auto_start = new_state;
-                            let _ = cfg.save();
+                            if let Err(e) = cfg.save() {
+                                eprintln!("[tray] config save error: {}", e);
+                            }
                         }
                         Err(e) => {
                             let _ = auto_start_clone.set_checked(!new_state);
