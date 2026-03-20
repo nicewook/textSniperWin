@@ -5,10 +5,10 @@
 - [x] 트레이 메뉴 "자동 실행" 토글 → `config::set_auto_start()` + config.json 동기화
 - [x] CheckMenuItem 체크 상태 토글 반영 (muda 자동 토글 활용)
 
-## P1 — 코드 정리
-- [ ] `eprintln!` 디버그 로그 → `#[cfg(debug_assertions)]` 조건부 전환
-- [ ] cargo warnings 12개 정리 (unused imports, unused_must_use, dead_code)
-- [ ] `TrayManager::new()`, `state` 필드 미사용 코드 제거
+## P1 — 코드 정리 ✅
+- [x] `eprintln!` 디버그 로그 → `debug_log!` 매크로 (debug 빌드 전용)
+- [x] cargo warnings 11개 정리 → 0개 (unused BOOL, imports, dead_code)
+- [x] `TrayManager::new()`, `state` 필드 미사용 코드 제거 → unit struct
 
 ## P2 — 아이콘 & UI
 - [ ] placeholder 아이콘 4개 실제 디자인으로 교체 (icon, loading, success, error)
