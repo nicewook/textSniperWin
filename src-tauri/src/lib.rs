@@ -114,18 +114,27 @@ fn run_capture_pipeline(app: tauri::AppHandle, tray: tauri::tray::TrayIcon) {
         }
     };
 
-    // 5. OCR
-    let bitmap = match ocr::create_bitmap_from_rgba(&pixels, rect.width, rect.height) {
-        Ok(b) => b,
-        Err(_) => {
+    // 5. OCR (스레드 + 채널, 5초 타임아웃)
+    let pixels_clone = pixels;
+    let width = rect.width;
+    let height = rect.height;
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let result = (|| {
+            let bmp = ocr::create_bitmap_from_rgba(&pixels_clone, width, height)?;
+            ocr::recognize_text(&bmp)
+        })();
+        let _ = tx.send(result);
+    });
+
+    let text = match rx.recv_timeout(std::time::Duration::from_secs(5)) {
+        Ok(Ok(t)) => t,
+        Ok(Err(_)) => {
             TrayManager::flash_state(tray, TrayState::Error, app);
             return;
         }
-    };
-
-    let text = match ocr::recognize_text(&bitmap) {
-        Ok(t) => t,
         Err(_) => {
+            eprintln!("OCR timeout (5s exceeded)");
             TrayManager::flash_state(tray, TrayState::Error, app);
             return;
         }
