@@ -1,9 +1,9 @@
 # TextSniper 다음 세션 TODO
 
-## P0 — 기능 미작동 수정
-- [ ] 트레이 메뉴 "캡처" 클릭 이벤트 리스너 연결 (emit만 있고 수신 없음)
-- [ ] 트레이 메뉴 "자동 실행" 토글 이벤트 → `config::set_auto_start()` 호출 연결
-- [ ] CheckMenuItem 체크 상태 토글 반영
+## P0 — 기능 미작동 수정 ✅
+- [x] 트레이 메뉴 "캡처" 클릭 → `run_capture_pipeline` 직접 호출
+- [x] 트레이 메뉴 "자동 실행" 토글 → `config::set_auto_start()` + config.json 동기화
+- [x] CheckMenuItem 체크 상태 토글 반영 (muda 자동 토글 활용)
 
 ## P1 — 코드 정리
 - [ ] `eprintln!` 디버그 로그 → `#[cfg(debug_assertions)]` 조건부 전환
