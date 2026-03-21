@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "TextSniperWin",
-  "version": "0.1.0",
+  "productName": "TextSniper",
+  "version": "1.0.0",
   "identifier": "com.textsniper.win",
   "build": {
     "frontendDist": "../src"
@@ -15,13 +15,31 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "정현석",
+    "copyright": "Copyright © 2026 정현석",
+    "shortDescription": "화면 영역 OCR 텍스트 캡처 도구",
+    "longDescription": "Windows 화면의 특정 영역을 캡처하여 OCR로 텍스트를 인식하고 클립보드에 복사하는 경량 데스크톱 앱. 단축키 Shift+Alt+T로 빠르게 캡처할 수 있습니다.",
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": null,
+      "timestampUrl": null,
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      },
+      "nsis": {
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "languages": ["Korean", "English"],
+        "startMenuFolder": "TextSniper"
+      }
+    }
   }
 }
