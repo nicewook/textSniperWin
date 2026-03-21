@@ -15,11 +15,11 @@
 - [x] ~~트레이 상태 아이콘(loading/success/error)~~ 제거 — "의미없음" 결정
 - [x] ~~오버레이 커서 툴팁~~ 제거 — "의미없음" 결정
 
-## P3 — 릴리즈 준비
-- [ ] `tauri.conf.json` 릴리즈 설정 (버전, 설명, 퍼블리셔)
-- [ ] NSIS/WiX 인스톨러 구성
-- [ ] WebView2 런타임 번들링 결정 (Win10 대응)
-- [ ] 앱 아이콘 (taskbar, 설치 프로그램용)
+## P3 — 릴리즈 준비 ✅
+- [x] `tauri.conf.json` 릴리즈 설정 (버전, 설명, 퍼블리셔)
+- [x] NSIS/WiX 인스톨러 구성 → NSIS 선택 (Tauri v2 기본, WiX 대비 설정 간편)
+- [x] WebView2 런타임 번들링 결정: embedBootstrapper (Win10 대응)
+- [x] 앱 아이콘 (taskbar, 설치 프로그램용)
 
 ## P4 — 기능 확장 (MVP 범위 외)
 - [ ] 복사 전 미리보기 팝업
