@@ -9,7 +9,7 @@ mod tray;
 
 use config::AppConfig;
 use overlay::OverlayResult;
-use tray::{TrayManager, TrayState};
+use tray::TrayManager;
 
 pub fn run() {
     // 1. 단일 인스턴스 체크
@@ -31,7 +31,7 @@ pub fn run() {
             let tray = TrayManager::setup_tray(app.handle())?;
 
             // 4. 글로벌 단축키 등록
-            setup_global_shortcut(app, tray.clone())?;
+            setup_global_shortcut(app)?;
 
             // 5. 첫 실행 안내
             if config.first_run {
@@ -53,7 +53,6 @@ pub fn run() {
 
 fn setup_global_shortcut(
     app: &tauri::App,
-    tray: tauri::tray::TrayIcon,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use tauri_plugin_global_shortcut::{
         Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState,
@@ -61,15 +60,12 @@ fn setup_global_shortcut(
 
     let shortcut = Shortcut::new(Some(Modifiers::SHIFT | Modifiers::ALT), Code::KeyT);
 
-    let tray_clone = tray.clone();
     app.handle().plugin(
         tauri_plugin_global_shortcut::Builder::new()
-            .with_handler(move |app, sc, event| {
+            .with_handler(move |_app, sc, event| {
                 if sc == &shortcut && event.state() == ShortcutState::Pressed {
-                    let app_handle = app.clone();
-                    let tray_ref = tray_clone.clone();
-                    std::thread::spawn(move || {
-                        run_capture_pipeline(app_handle, tray_ref);
+                    std::thread::spawn(|| {
+                        run_capture_pipeline();
                     });
                 }
             })
@@ -80,7 +76,6 @@ fn setup_global_shortcut(
         Ok(_) => {}
         Err(e) => {
             eprintln!("Failed to register shortcut: {}", e);
-            tray.set_tooltip(Some("TextSniper - 단축키 등록 실패"))?;
         }
     }
 
@@ -88,7 +83,7 @@ fn setup_global_shortcut(
 }
 
 /// 핵심 파이프라인: 오버레이 → 캡처 → OCR → 클립보드
-pub fn run_capture_pipeline(app: tauri::AppHandle, tray: tauri::tray::TrayIcon) {
+pub fn run_capture_pipeline() {
     // 1. 모니터 정보
     debug_log::debug_log!("[pipeline] 1. get_current_monitor...");
     let monitor = match overlay::get_current_monitor() {
@@ -119,10 +114,7 @@ pub fn run_capture_pipeline(app: tauri::AppHandle, tray: tauri::tray::TrayIcon) 
         }
     };
 
-    // 3. 트레이 로딩 표시
-    let _ = TrayManager::set_state(&tray, TrayState::Loading, &app);
-
-    // 3.5. 오버레이 닫힌 후 화면 복구 대기
+    // 3. 오버레이 닫힌 후 화면 복구 대기
     std::thread::sleep(std::time::Duration::from_millis(150));
 
     // 4. 화면 캡처
@@ -134,7 +126,6 @@ pub fn run_capture_pipeline(app: tauri::AppHandle, tray: tauri::tray::TrayIcon) 
         }
         Err(e) => {
             debug_log::debug_log!("[pipeline] ERROR capture: {}", e);
-            TrayManager::flash_state(tray, TrayState::Error, app);
             return;
         }
     };
@@ -171,12 +162,10 @@ pub fn run_capture_pipeline(app: tauri::AppHandle, tray: tauri::tray::TrayIcon) 
         }
         Ok(Err(e)) => {
             debug_log::debug_log!("[pipeline] ERROR OCR: {}", e);
-            TrayManager::flash_state(tray, TrayState::Error, app);
             return;
         }
         Err(_) => {
             debug_log::debug_log!("[pipeline] ERROR OCR timeout (5s exceeded)");
-            TrayManager::flash_state(tray, TrayState::Error, app);
             return;
         }
     };
@@ -186,11 +175,9 @@ pub fn run_capture_pipeline(app: tauri::AppHandle, tray: tauri::tray::TrayIcon) 
     match clipboard::copy_to_clipboard(&text) {
         Ok(_) => {
             debug_log::debug_log!("[pipeline] SUCCESS - text copied to clipboard");
-            TrayManager::flash_state(tray, TrayState::Success, app);
         }
         Err(e) => {
             debug_log::debug_log!("[pipeline] ERROR clipboard: {}", e);
-            TrayManager::flash_state(tray, TrayState::Error, app);
         }
     }
 }

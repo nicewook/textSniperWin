@@ -5,14 +5,6 @@ use tauri::{
     AppHandle,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum TrayState {
-    Idle,
-    Loading,
-    Success,
-    Error,
-}
-
 pub struct TrayManager;
 
 impl TrayManager {
@@ -35,14 +27,9 @@ impl TrayManager {
             .show_menu_on_left_click(false)
             .on_menu_event(move |app: &AppHandle, event: tauri::menu::MenuEvent| match event.id.as_ref() {
                 "capture" => {
-                    let app_handle = app.clone();
-                    if let Some(tray) = app.tray_by_id("main") {
-                        std::thread::spawn(move || {
-                            crate::run_capture_pipeline(app_handle, tray);
-                        });
-                    } else {
-                        eprintln!("[tray] could not find tray 'main'");
-                    }
+                    std::thread::spawn(|| {
+                        crate::run_capture_pipeline();
+                    });
                 }
                 "auto_start" => {
                     let new_state = auto_start_clone.is_checked().unwrap_or(false);
@@ -68,29 +55,5 @@ impl TrayManager {
             .build(app)?;
 
         Ok(tray)
-    }
-
-    /// 트레이 아이콘 상태 변경
-    pub fn set_state(
-        tray: &TrayIcon,
-        state: TrayState,
-        _app: &AppHandle,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        tray.set_icon(Some(match state {
-            TrayState::Idle => Image::from_bytes(include_bytes!("../icons/icon.ico"))?,
-            TrayState::Loading => Image::from_bytes(include_bytes!("../icons/icon-loading.ico"))?,
-            TrayState::Success => Image::from_bytes(include_bytes!("../icons/icon-success.ico"))?,
-            TrayState::Error => Image::from_bytes(include_bytes!("../icons/icon-error.ico"))?,
-        }))?;
-        Ok(())
-    }
-
-    /// 성공/실패 아이콘 표시 후 1초 뒤 idle로 복귀
-    pub fn flash_state(tray: TrayIcon, state: TrayState, app: AppHandle) {
-        let _ = Self::set_state(&tray, state, &app);
-        std::thread::spawn(move || {
-            std::thread::sleep(std::time::Duration::from_secs(1));
-            let _ = Self::set_state(&tray, TrayState::Idle, &app);
-        });
     }
 }
