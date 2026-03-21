@@ -21,6 +21,10 @@
 - [x] WebView2 런타임 번들링 결정: embedBootstrapper (Win10 대응)
 - [x] 앱 아이콘 (taskbar, 설치 프로그램용)
 
+## P3.5 — 배포 인프라
+- [ ] 코드 서명 — EV 인증서 적용 시 SmartScreen 경고 제거 (연 $200~400)
+- [ ] 자동 업데이트 — `tauri-plugin-updater` + GitHub Releases 연동, 후속 버전 자동 배포
+
 ## P4 — 기능 확장 (MVP 범위 외)
 - [ ] 복사 전 미리보기 팝업
 - [ ] 줄바꿈 자동 정리 옵션
@@ -32,3 +36,4 @@
 - 스펙: `doc/SPEC.md`
 - 구현 계획: `doc/plans/2026-03-20-textsniper-win.md`
 - 프로젝트 컨텍스트: `CLAUDE.md`
+- v1.0.0 릴리즈: https://github.com/nicewook/textSniperWin/releases/tag/v1.0.0
