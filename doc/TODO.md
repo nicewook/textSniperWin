@@ -11,8 +11,9 @@
 - [x] `TrayManager::new()`, `state` 필드 미사용 코드 제거 → unit struct
 
 ## P2 — 아이콘 & UI ✅
-- [x] placeholder 아이콘 4개 → macOS 스타일 미니멀 단색 아이콘 (16x16+32x32 멀티사이즈)
-- [x] 오버레이 커서 근처 툴팁 ("드래그하여 선택 / ESC 취소") + DPI 대응
+- [x] placeholder 아이콘 → macOS 스타일 미니멀 단색 아이콘 (16x16+32x32)
+- [x] ~~트레이 상태 아이콘(loading/success/error)~~ 제거 — "의미없음" 결정
+- [x] ~~오버레이 커서 툴팁~~ 제거 — "의미없음" 결정
 
 ## P3 — 릴리즈 준비
 - [ ] `tauri.conf.json` 릴리즈 설정 (버전, 설명, 퍼블리셔)
