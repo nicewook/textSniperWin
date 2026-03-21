@@ -4,6 +4,8 @@
 
 [![GitHub Release](https://img.shields.io/github/v/release/nicewook/textSniperWin)](https://github.com/nicewook/textSniperWin/releases)
 
+![TextSniper for Windows preview](doc/images/textsniperwin-hero.jpg)
+
 ## 주요 기능
 
 - **`Shift+Alt+T`** 단축키로 빠른 캡처
