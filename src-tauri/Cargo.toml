@@ -1,9 +1,10 @@
 [package]
 name = "text-sniper-win"
-version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+version = "1.0.0"
+description = "Screen region OCR text capture tool for Windows"
+authors = ["정현석"]
 edition = "2021"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
